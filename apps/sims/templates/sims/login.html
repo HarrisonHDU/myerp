@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+    <head>
+        <meta charset="utf-8">
+        <title>登录</title>
+        <meta name="description" content="">
+        <meta name="author" content="Harrison">
+
+        <link rel="stylesheet" href="/static/sims/css/reset.css">
+        <link rel="stylesheet" href="/static/sims/css/supersized.css">
+        <link rel="stylesheet" href="/static/sims/css/style.css">
+
+        <script src="/static/sims/jquery-2.1.1.min.js"></script>
+        <script src="/static/sims/supersized.3.2.7.min.js"></script>
+        <script src="/static/sims/supersized-init.js"></script>
+        <script src="/static/sims/scripts.js"></script>
+    </head>
+    <body>
+    {% if form.errors %}
+        <p>Your username and password didn't match. Please try again.</p>
+    {% endif %}
+
+        <div class="page-container">
+            <h1>企业信息管理系统</h1>
+            <form action="{% url 'django.contrib.auth.views.login' %}" method="post">
+                {% csrf_token %}
+                <input type="text" name="username" class="username" placeholder="Username">
+                <input type="password" name="password" class="password" placeholder="Password">
+                <button type="submit">登录</button>
+                <input type="hidden" name="next" value="{{ next }}">
+                <div class="error"><span>+</span></div>
+            </form>
+        </div>
+
+
+
+    </body>
+
+</html>

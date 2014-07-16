@@ -1,0 +1,2 @@
+set base_dir=D:\Tomcat 7.0\webapps\ext-3.4.0\examples\ux\treegrid\
+copy "%base_dir%TreeGridSorter.js"+"%base_dir%TreeGridColumnResizer.js"+"%base_dir%TreeGridNodeUI.js"+"%base_dir%TreeGridLoader.js"+"%base_dir%TreeGridColumns.js"+"%base_dir%TreeGrid.js" treegrid.js /b

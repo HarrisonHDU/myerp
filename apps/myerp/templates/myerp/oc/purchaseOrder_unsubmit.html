@@ -1,0 +1,136 @@
+{% extends "myerp/base.html" %}
+
+{% block js_import %}
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/util.js"></script>
+{% endblock %}
+
+{% block extjs %}
+<script type="text/javascript">
+Ext.ns('oc.purchaseOrder_unsubmit');
+var pou = oc.purchaseOrder_unsubmit;
+var ORDER_STORE_PAGE_SIZE = 20;
+
+pou.order_store = new Ext.data.JsonStore({
+    url: "{% url 'oc_pod' %}",
+    root: 'items',
+    idProperty: 'id',
+    totalProperty: 'total',
+    fields: [
+        {name: 'id', type: 'int'},
+        {name: 'pid', type: 'int'},
+        {name: 'total', type: 'float'},
+        {name: 'creater', type: 'string'},
+        {name: 'create_datetime', type: 'date', dateFormat:'Y-m-d H:i:s'},
+        {name: 'last_modifier', type: 'string'},
+        {name: 'last_modify_datetime', type: 'date', dateFormat:'Y-m-d H:i:s'},
+        {name: 'remark', type: 'string'},
+        {name: 'is_delete', type: 'boolean'}
+    ],
+    remoteSort: true,
+    sortInfo: {
+        field: 'create_datetime',
+        direction: 'DESC'
+    }
+});
+pou.order_store.load({
+    params:{
+        start: 0,
+        limit: ORDER_STORE_PAGE_SIZE
+    }
+});
+
+pou.order_grid = new Ext.grid.GridPanel({
+    region: 'center',
+    cm: new Ext.grid.ColumnModel([
+        new Ext.grid.RowNumberer(),
+        {header: '订单编号', dataIndex:'pid', width: 120},
+        {header: '总金额', dataIndex:'total', width: 70, renderer: Ext.util.Format.chnMoney},
+        {header: '创建人', dataIndex:'creater', width: 80},
+        {header: '创建时间', dataIndex: 'create_datetime', width: 80, sortable: true,
+            xtype:'datecolumn', format: 'Y/m/d H:i:s'},
+        {header: '最后修改人', dataIndex: 'last_modifier', width: 80},
+        {header: '最后修改时间', dataIndex: 'last_modify_datetime', width: 80,
+            xtype: 'datecolumn', format: 'Y/m/d H:i:s'},
+        {header: '是否作废', dataIndex: 'is_delete', width:30, xtype:'booleancolumn',
+            trueText:'是', falseText: '否'},
+        {header: '备注', dataIndex: 'remark', width: 150}
+    ]),
+    viewConfig:{
+        forceFit: true
+    },
+    store: pou.order_store,
+    bbar: new Ext.PagingToolbar({
+        pageSize: ORDER_STORE_PAGE_SIZE,
+        store: pou.order_store,
+        displayInfo: true
+    }),
+    tbar: new Ext.Toolbar({
+        items:[{
+            text: '新建',
+            iconCls: 'Add',
+            handler: function(btn, e){
+                window.location.href = '{{ next }}';
+            }
+        },'-',{
+            text: '编辑',
+            iconCls: 'Pageedit',
+            handler: function(btn, e){ window.location.href = '{{ next }}'; }
+        },'-',{
+            text: '作废',
+            iconCls: 'Decline'
+        }]
+    })
+});
+
+pou.order_detail_store = new Ext.data.ArrayStore({
+    url: "{% url 'oc_podd' %}",
+    idProperty: 'id',
+    fields:[
+        {name: 'id', type:'int'},
+        {name: 'product_id', type: 'int'},
+        {name: 'product_name', type: 'string'},
+        {name: 'unit_price', type: 'float'},
+        {name: 'amount', type: 'int'},
+        {name: 'sum', defaultValue: 0, type: 'float'}
+    ],
+    autoLoad: false,
+    remoteSort: true,
+    sortInfo:{
+        field: 'product_id',
+        direction: 'ASC'
+    }
+});
+
+pou.order_detail_grid = new Ext.grid.GridPanel({
+    region: 'south',
+    title: '订单明细',
+    height: 250,
+    split: true,
+    cm: new Ext.grid.ColumnModel([
+        new Ext.grid.RowNumberer(),
+        {header: '产品编码', dataIndex:'product_id', width: 100},
+        {header: '产品名称', dataIndex:'product_name', width: 120},
+        {header: '单价', dataIndex:'unit_price', width: 50, renderer: Ext.util.Format.chnMoney},
+        {header: '数量', dataIndex:'amount', width: 50, xtype:'numbercolumn'},
+        {header: '合计', dataIndex:'sum', width: 70, renderer: function(v, meta, r){
+            return Ext.util.Format.chnMoney(r.get('unit_price')* r.get('amount'));
+        }}
+    ]),
+    viewConfig:{
+        forceFit: true
+    },
+    store: pou.order_detail_store
+});
+
+Ext.onReady(function(){
+    new Ext.Viewport({
+        layout: 'border',
+        border: false,
+        defaults: {
+            border: false
+        },
+        items:[pou.order_grid, pou.order_detail_grid]
+    });
+});
+</script>
+{% endblock %}

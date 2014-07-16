@@ -1,0 +1,146 @@
+{% extends "myerp/base.html" %}
+
+{% block css_import %}
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}extjs/ux/calendar/resources/css/calendar.css">
+{% endblock %}
+
+{% block js_import %}
+{% if debug %}
+    <script type="text/javascript" src="{{ STATIC_URL }}extjs/ux/calendar/calendar-all-debug.js"></script>
+{% else %}
+    <script type="text/javascript" src="{{ STATIC_URL }}extjs/ux/calendar/calendar-all.js"></script>
+{% endif %}
+{% endblock %}
+
+{% block extjs %}
+<script type="text/javascript">
+Ext.onReady(function(){
+    var calendarList = {
+        "calendars":[{
+            "id":1,
+            "title":"Home"
+        },{
+            "id":2,
+            "title":"Work"
+        },{
+            "id":3,
+            "title":"School"
+        }]
+    };
+
+    var today = new Date().clearTime();
+    var eventList = {
+        "evts": [/*{
+            "id": 1001,
+            "cid": 1,
+            "title": "Vacation",
+            "start": today.add(Date.DAY, -20).add(Date.HOUR, 10),
+            "end": today.add(Date.DAY, -10).add(Date.HOUR, 15),
+            "ad": false,
+            "notes": "Have fun"
+        },
+        {
+            "id": 1002,
+            "cid": 2,
+            "title": "Lunch with Matt",
+            "start": today.add(Date.HOUR, 11).add(Date.MINUTE, 30),
+            "end": today.add(Date.HOUR, 13),
+            "ad": false,
+            "loc": "Chuy's!",
+            "url": "http://chuys.com",
+            "notes": "Order the queso",
+            "rem": "15"
+        },
+        {
+            "id": 1008,
+            "cid": 3,
+            "title": "An old event",
+            "start": today.add(Date.DAY, -30),
+            "end": today.add(Date.DAY, -28),
+            "ad": true,
+            "notes": "Get cash on the way"
+        }*/]
+    };
+
+
+    var calendarStore = new Ext.data.JsonStore({
+        storeId: 'calendarStore',
+        root: 'calendars',
+        idProperty: 'id',
+        data: calendarList,
+        proxy: new Ext.data.MemoryProxy(),
+        autoLoad: true,
+        fields:[
+            {name:'CalendarId', mapping: 'id', type: 'int'},
+            {name:'Title', mapping: 'title', type: 'string'}
+        ],
+        sortInfo:{
+            field: 'CalendarId',
+            direction: 'ASC'
+        }
+    });
+
+    var eventStore = new Ext.data.JsonStore({
+        id: 'eventStore',
+        root: 'evts',
+        data: eventList,
+        proxy: new Ext.data.MemoryProxy(),
+        fields: Ext.calendar.EventRecord.prototype.fields.getRange(),
+        sortInfo:{
+            field: 'StartDate',
+            direction: 'ASC'
+        }
+    });
+
+    new Ext.Viewport({
+        layout: 'border',
+        border: false,
+        defaults:{
+            border: true,
+            split: false
+        },
+        items:[{
+            region: 'center',
+            html: '新闻内容'
+        },{
+            region: 'east',
+            width: 350,
+            layout: 'vbox',
+            layoutConfig:{
+                align: 'stretch',
+                pack: 'start'
+            },
+            items:[{
+                xtype: 'calendarpanel',
+                flex: 11,
+                border: false,
+                activeItem: 2,
+                calendarStore: calendarStore,   // 日程记录数据
+                eventStore: eventStore,         // 日程事件种类
+                /* 涉及到面板内部(面板导航的配置参数不在这里)显示的参数要写在这里才有效 */
+                monthViewCfg:{
+                    showHeader: true,      // 星期行
+                    showWeekLinks: true,   // 周列
+                    showWeekNumbers: true, // 周列上的数字
+                    todayText: '今天'
+                },
+                showDayView: false,     // 天面板
+                showWeekView: false,    // 周面板
+                showMonthView: true,    // 月面板
+                showNavBar: true,       // 选择面板的导航行
+                showTodatText: false,
+                showTime: false,        // 是否显示时间
+                monthText: '月',        // 面板导航的显示字符串
+                title: '日程表'
+            },{
+                title: '待办事项',
+                flex: 4.5
+            },{
+                title: '申请事项',
+                flex: 4.5
+            }]
+        }]
+    });
+});
+</script>
+{% endblock %}

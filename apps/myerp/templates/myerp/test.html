@@ -1,0 +1,210 @@
+{% extends "myerp/base.html" %}
+
+{% block css_import %}
+    <link rel="stylesheet" href="{{ STATIC_URL }}myerp/css/ux-all.css">
+{% endblock %}
+
+{% block js_import %}
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/CenterLayout.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/util.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/productSearchGrid.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/product_searchWindow.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/comboSearchField.js"></script>
+{% endblock %}
+
+{% block css %}
+<style type="text/css">
+    .ux-layout-center .x-panel-body,
+    body.ux-layout-center {
+        text-align: left;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+{% endblock %}
+
+{% block content %}
+{% endblock %}
+
+{% block extjs %}
+<script type="text/javascript">
+function _searchCustomer(){
+	alert("‘搜索客户’建设中...");
+}
+
+Ext.onReady(function(){
+    var idx = 3;
+    var url_array = [
+        ["{% url 'sys_product_query' %}","商品编码-名称数据"]
+    ];
+    var value_type_store = new Ext.data.ArrayStore({
+        data: [['string'],['int']],
+        fields: ['text']
+    });
+
+    var form = new Ext.form.FormPanel({
+        defaultType: 'textfield',
+        width: 700,
+        autoHeight: true,
+        labelAlign: 'right',
+        labelWidth: 80,
+        title: 'Ajax请求参数',
+        buttonAlign: 'center',
+        frame: true,
+        defaults:{},
+        items:[{
+            xtype: 'combo',
+            name: 'URLtext',
+            hiddenName: 'url',
+            fieldLabel: '请求地址',
+            triggerAction: 'all',
+            valueField: 'value',
+            displayField: 'text',
+            mode: 'local',
+            store: new Ext.data.ArrayStore({
+                data: url_array,
+                fields: ['value', 'text']
+            })
+        },{
+            xtype: 'combosearch',
+            fieldLabel: '查询拉下框',
+            store: new Ext.data.ArrayStore({
+                data: url_array,
+                fields: ['value', 'text']
+            }),
+            triggerAction: 'all',
+            valueField: 'value',
+            displayField: 'text',
+            mode: 'local',
+            typeAhead: false,
+            onTrigger2Click : _searchCustomer.createDelegate(this)
+        },{
+            xtype: 'compositefield',
+            fieldLabel: '参数1',
+            defaults:{flex: 1},
+            items: [{
+                xtype: 'textfield',
+                name: 'key1',
+                id: 'key1'
+            },{
+                xtype: 'textfield',
+                name: 'value1'
+            },{
+                xtype: 'combo',
+                name: 'type1',
+                store: value_type_store,
+                mode: 'local',
+                triggerAction: 'all',
+                valueField: 'text',
+                displayField: 'text',
+                value: 'string',
+                editable: false
+            }]
+        },{
+            xtype: 'compositefield',
+            fieldLabel: '参数2',
+            defaults:{flex: 1},
+            items: [{
+                xtype: 'textfield',
+                name: 'key2'
+            },{
+                xtype: 'textfield',
+                name: 'value2'
+            },{
+                xtype: 'combo',
+                name: 'type2',
+                store: value_type_store,
+                mode: 'local',
+                triggerAction: 'all',
+                valueField: 'text',
+                displayField: 'text',
+                value: 'string',
+                editable: false
+            }]
+        },{
+            xtype: 'compositefield',
+            fieldLabel: '参数3',
+            defaults:{flex: 1},
+            items: [{
+                xtype: 'textfield',
+                name: 'key3'
+            },{
+                xtype: 'textfield',
+                name: 'value3'
+            },{
+                xtype: 'combo',
+                name: 'type3',
+                store: value_type_store,
+                mode: 'local',
+                triggerAction: 'all',
+                valueField: 'text',
+                displayField: 'text',
+                value: 'string',
+                editable: false
+            }]
+        }],
+        buttons: [{
+            text: '提交',
+            handler: function(btn, e){
+                var value_obj = form.getForm().getValues();
+                var params = {};
+                for (var i = 1; i <= idx; i++){
+                    if (!Ext.isEmpty(value_obj['key'+ i]))
+                    {
+                        if (value_obj['type'+i] == 'string')
+                            eval('params.' + value_obj['key'+i] + '="' + value_obj['value'+i] + '"');
+                        else
+                            eval('params.' + value_obj['key'+i] + '=' + value_obj['value'+i]);
+                    }
+                }
+                doAjax({
+                    url: value_obj.url,
+                    params: params
+                });
+            }
+        },{
+            text: '增加参数',
+            handler: function(btn, e){
+                idx++;
+                form.add({
+                    xtype: 'compositefield',
+                    fieldLabel: '参数' + idx,
+                    defaults: {flex: 1},
+                    items:[{
+                        xtype: 'textfield',
+                        name: 'key' + idx
+                    },{
+                        xtype: 'textfield',
+                        name: 'value' + idx
+                    },{
+                        xtype: 'combo',
+                        name: 'type' + idx,
+                        store: value_type_store,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        valueField: 'text',
+                        displayField: 'text',
+                        value: 'string',
+                        editable: false
+                    }]
+                });
+                form.doLayout();
+            }
+        }]
+    });
+
+    new Ext.Viewport({
+        layout: 'fit',
+        items: [{
+            layout: 'ux.center',
+            items: form
+        }]
+    });
+
+    new Ext.ux.window.ProductSearchWindow({
+        url: '{% url "sys_product_query" %}'
+    }).show();
+});
+</script>
+{% endblock %}

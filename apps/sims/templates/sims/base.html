@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="CONTENT-TYPE" content="text/html; charset=utf-8">
+    <meta name="keywords" content="django,extjs">
+    <meta name="author" content="Harrison">
+    <title>
+        {% block title %} 标题 {% endblock %}
+    </title>
+    <link rel="stylesheet" href="/static/extjs/resources/css/ext-all.css">
+    <script type="text/javascript" src="/static/extjs/ext-base-debug.js"></script>
+    <script type="text/javascript" src="/static/extjs/ext-all-debug.js"></script>
+    <script type="text/javascript" src="/static/extjs/ext-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="/static/sims/jquery-2.1.1.min.js"></script>
+
+    {% block css_import %} {% endblock %}
+    {% block js_import %} {% endblock %}
+
+    {% block js %}  {% endblock %}
+</head>
+<body>
+{% block content %}
+{% endblock %}
+
+{% block extjs %}
+    <!-- 继承的页面需要手动插入<script type="text/javascript"></script> -->
+{% endblock %}
+</body>
+</html>

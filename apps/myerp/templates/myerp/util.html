@@ -1,0 +1,12 @@
+<script type="text/javascript">
+function loadSysMenuData(success_fun, func_scope){
+    Ext.Ajax.request({
+        url: "{% url 'apps.myerp.views.sysmenu_data' %}",
+        success: function(response, opts){
+            var obj = Ext.decode(response.responseText);
+            success_fun(obj, this);
+        },
+        scope: func_scope
+    });
+}
+</script>

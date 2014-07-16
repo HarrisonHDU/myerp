@@ -1,0 +1,390 @@
+{% extends "myerp/base.html" %}
+
+{% block css %}
+<style type="text/css">
+/* style rows on mouseover */
+.x-grid3-row-over .x-grid3-cell-inner {
+    font-weight: bold;
+}
+</style>
+{% endblock %}
+
+{% block css_import %}
+    <link rel="stylesheet" href="{{ STATIC_URL }}myerp/css/ux-all.css">
+{% endblock %}
+
+{% block js_import %}
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/util.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/comboboxTree.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/treegrid.js"></script>
+{% endblock %}
+
+{% block extjs %}
+<script type="text/javascript">
+Ext.ns('sys.productInfo', 'sys.productType');
+
+Ext.onReady(function(){
+    Ext.QuickTips.init();
+
+    var sm = new Ext.grid.CheckboxSelectionModel();
+
+    var cm = new Ext.grid.ColumnModel([
+        new Ext.grid.RowNumberer(),
+        sm,
+        {header:'产品编码', dataIndex:'pid', width:40},
+        {header:'产品名称', dataIndex:'name', width:120},
+        {header:'产品种类', dataIndex:'sec_name', width:80},
+        {header:'参考进价', dataIndex:'purchase_price', width:30, renderer: Ext.util.Format.chnMoney},
+        {header:'参考售价', dataIndex:'sell_price', width:30, renderer: Ext.util.Format.chnMoney},
+        {header:'库存预警下限', dataIndex:'warning_amount_bottom', width:40},
+        {header:'库存预警上限', dataIndex:'warning_amount_top', width:40},
+        {header:'是否启用库存预警',dataIndex:'is_warning_active',width:30, xtype:'booleancolumn',
+            trueText: '是', falseText: '否'},
+        {header:'创建时间',dataIndex:'create_date',xtype:'datecolumn',width:50, format: 'Y年m月d日'}
+    ]);
+
+    var store = new Ext.data.JsonStore({
+        url: "{% url 'apps.myerp.views.product_data' %}",
+        root: 'items',
+        idProperty: 'id',
+        totalProperty: 'total',
+        fields:[
+            'id','pid','name','sec_name','warning_amount_bottom','warning_amount_top',
+            'is_warning_active','is_delete','remark','sec_id',
+            {name:'purchase_price', type:'float'},
+            {name: 'sell_price', type:'float'},
+            {name:'create_date', type:'date',dateFormat:'Y-m-d H:i:s'}
+        ],
+        remoteSort: true,
+        sortInfo:{
+            field: 'create_date',
+            direction: 'ASC'
+        }
+    });
+
+    store.load({ params: {start:0, limit:30} });
+
+    var form = new Ext.form.FormPanel({
+        id: 'product_form',
+        title: '编辑产品信息',
+        region: 'east',
+        frame: true,
+        width: 350,
+        autoHeight: true,
+        labelAlign: 'right',
+        labelWidth: 110,
+        defaultType: 'textfield',
+        defaults:{
+            width: 220,
+            allowBlank: false
+        },
+        items:[{
+            xtype: 'hidden',
+            name: 'id'
+        },{
+            fieldLabel: '产品编码',
+            name: 'pid',
+            xtype: 'numberfield',
+            allowNegative: false,
+            allowDecimals: false
+        },{
+            fieldLabel: '产品名称',
+            name: 'name'
+        },{
+            fieldLabel: '产品种类',
+            name: 'sectext',
+            xtype: 'combotree',
+            hiddenName: 'sec_id',
+            selectNodeModel: 'leaf',
+            dataUrl: "{{ STATIC_URL }}myerp/localdata/{{ DATA_DOCUMENTED_SETTINGS.product_catagory_file_name }}"
+        },{
+            fieldLabel: '参考进价',
+            name: 'purchase_price',
+            xtype: 'numberfield',
+            allowNegative: false
+        },{
+            fieldLabel: '参考售价',
+            name: 'sell_price',
+            xtype: 'numberfield',
+            allowNegative: false
+        },{
+            fieldLabel: '库存预警下限',
+            name: 'warning_amount_bottom',
+            xtype: 'numberfield',
+            allowNegative: false,
+            allowDecimals: false
+        },{
+            fieldLabel: '库存预警上限',
+            name: 'warning_amount_top',
+            xtype: 'numberfield',
+            allowNegative: false,
+            allowDecimals: false
+        },{
+            fieldLabel: '是否启用库存预警',
+            xtype: 'checkbox',
+            name: 'is_warning_active',
+            inputValue: 'true'
+        },{
+            fieldLabel: '备注',
+            xtype: 'textarea',
+            grow: true,
+            preventScrollbars: true,
+            name: 'remark'
+        },{
+            fieldLabel: '是否作废',
+            xtype: 'checkbox',
+            name: 'is_delete',
+            inputValue: 'true'
+        }],
+        buttons: [{
+            id: 'btn_add',
+            text: '添加',
+            handler: function(btn, e){
+                var basicform = form.getForm();
+                if (!basicform.isValid()){
+                    Ext.Msg.alert('错误', '存在不合法表单值');
+                    return;
+                }
+                var params = {};
+                if (Ext.isEmpty(basicform.getValues().is_delete)){
+                    // 没有选中就手动添加值
+                    params.is_delete = "false";
+                }
+                if (Ext.isEmpty(basicform.getValues().is_warning_active)){
+                    params.is_warning_active = "false";
+                }
+                basicform.submit({
+                    url: "{% url 'apps.myerp.views.product_save' %}",
+                    params: params,
+                    success: function(form, action){
+                        if (action.result.success){
+                            Ext.Msg.alert('消息', action.result.msg, function(){
+                                store.reload();
+                                btn.setText('添加');
+                                form.reset();
+                            });
+                        }
+                    },
+                    failure: function(){
+                        if (Ext.isEmpty(basicform.findField('id').getValue())) {
+                            Ext.Msg.alert('错误', '添加失败');
+                        } else {
+                            Ext.Msg.alert('错误', '修改失败');
+                        }
+                    }
+                });
+            }
+        },{
+            text: '清空',
+            handler: function(btn, e){
+                form.getForm().reset();
+                Ext.getCmp('btn_add').setText('添加');
+            }
+        },{
+            text: '删除'
+        }]
+    });
+
+    new Ext.Viewport({
+        layout: 'fit',
+        border: false,
+        items: [{
+            xtype: 'tabpanel',
+            resizeTabs: false,
+            activeItem: 0,
+            items: [{
+                title: '产品信息',
+                layout: 'border',
+                border: false,
+                items:[{
+                    id: 'product_info_grid',
+                    xtype: 'grid',
+                    region: 'center',
+                    store: store,
+                    cm: cm,
+                    sm: sm,
+                    view: new Ext.grid.GridView({
+                        forceFit: true
+                    }),
+                    loadMask: true,
+                    frame: false,
+                    stripeRows: true,
+                    bbar: new Ext.PagingToolbar({
+                        pageSize: 30,
+                        store: store,
+                        displayInfo: true
+                    }),
+                    tbar: new Ext.Toolbar({
+                        items:[{
+                            text: '批量作废',
+                            iconCls: 'Decline'
+                        },'-',{
+                            text: '批量删除',
+                            iconCls: 'Delete'
+                        }]
+                    }),
+                    listeners:{
+                        rowclick: function(grid, rowIndex, event){
+                            var record = grid.getStore().getAt(rowIndex);
+                            form.getForm().loadRecord(record);
+                            Ext.getCmp('btn_add').setText('修改');
+                            // 选中树节点
+                            form.getForm().findField('sec_id').selectById(
+                                    record.get('sec_id'), record.get('sec_name'));
+                        }
+                    }
+                },form]
+            },{
+                title: '产品种类',
+                layout: 'fit',
+                items: [{
+                    id: 'product_type_treegrid',
+                    xtype: 'treegrid',
+                    enableDD: false,
+                    columns:[{
+                        header: '种类编码',
+                        dataIndex: 'id',
+                        width: 250
+                    },{
+                        header: '种类名称',
+                        dataIndex: 'name',
+                        width: 500
+                    },{
+                        header: '备注',
+                        dataIndex: 'remark',
+                        width: 500
+                    },{
+                        header: '是否作废',
+                        dataIndex: 'is_delete',
+                        width: 100,
+                        tpl: new Ext.XTemplate('{is_delete:this.formatIsDelete}',{
+                            formatIsDelete: function(value){
+                                if (value)
+                                    return "<span style='color:red;font-weight:bold;'>是</span>";
+                                else
+                                    return "<span>否</span>";
+                            }
+                        })
+                    }],
+                    root: new Ext.tree.AsyncTreeNode({
+                        id: '0',
+                        text: 'root'
+                    }),
+                    loader: new Ext.tree.TreeLoader({
+                        dataUrl: "{% url 'apps.myerp.views.product_catagory_node_data' %}"
+                    }),
+                    enableSort: false,
+                    tbar: new Ext.Toolbar({
+                        items: [{
+                            text: '新增',
+                            iconCls: 'Add'
+                        },' ',{
+                            text: '修改',
+                            iconCls: 'Pagewhiteedit',
+                            handler: function(btn, e){
+                                var treegrid = Ext.getCmp('product_type_treegrid');
+                                var node = treegrid.getSelectionModel().getSelectedNode();
+                                if (Ext.isEmpty(node)){
+                                    Ext.Msg.alert('提示','请选择要修改的记录!');
+                                } else {
+                                    var bform = sys.productType.editWindow.items.first().getForm();
+                                    bform.setValues(node.attributes);
+                                    sys.productType.editWindow.show(btn.btnEl);
+                                }
+                            }
+                        },' ',{
+                            text: '数据文件化',
+                            iconCls: 'Diskdownload',
+                            listeners:{
+                                click: function(e){
+                                    doAjax({
+                                        url: "{% url 'apps.myerp.views.file_output' %}",
+                                        params: {
+                                            output_type: Ext.encode([
+                                                'product_catagory',
+                                                'product_catagory_primary'
+                                            ])
+                                        }
+                                    });
+                                }
+                            }
+                        }]
+                    }),
+                    listeners:{
+                        click: function(node){
+                            var bform = sys.productType.editWindow.items.first().getForm();
+                            bform.setValues(node.attributes);
+                        }
+                    }
+                }]
+            }]
+        }]
+    });
+
+    // 产品一级种类数据源
+    sys.productType.primary_store = new Ext.data.Store({
+        proxy: new Ext.data.HttpProxy({url: "{{ STATIC_URL }}myerp/localdata/{{ DATA_DOCUMENTED_SETTINGS.product_catagory_primary_file_name }}"}),
+        reader: new Ext.data.JsonReader({
+            root: 'items',
+            fields: ['pcid','name','remark','id','is_delete']
+        })
+    });
+    sys.productType.primary_store.load();
+
+    sys.productType.editWindow = new Ext.Window({
+        layout: 'fit',
+        title: "产品类型修改",
+        width: 300,
+        height: 205,
+        hidden: true,
+        closeAction: 'hide',
+        items:[{
+            xtype: 'form',
+            labelAlign: 'right',
+            labelWidth: 80,
+            frame: true,
+            defaultType: 'textfield',
+            autoHeight: true,
+            buttonAlign: 'center',
+            defautls:{
+                width: 150
+            },
+            items:[{
+                fieldLabel: '类型编码',
+                name: 'id',
+                disabled: true,
+                width: 150
+            },{
+                fieldLabel: '类型名称',
+                name: 'name',
+                width: 150
+            },{
+                xtype: 'combo',
+                fieldLabel: '上级类型',
+                name: 'fathertext',
+                hiddenName: 'father',
+                mode: 'remote',
+                triggerAction: 'all',
+                width: 150,
+                valueField: 'pcid',
+                displayField: 'name',
+                store: sys.productType.primary_store
+            },{
+                fieldLabel: '备注',
+                width: 150,
+                name: 'remark'
+            },{
+                xtype: 'checkbox',
+                fieldLabel: '是否作废',
+                name: 'is_delete'
+            }],
+            buttons:[{
+                text: '保存'
+            },{
+                text: '取消'
+            }]
+        }]
+    });
+});
+</script>
+{% endblock %}

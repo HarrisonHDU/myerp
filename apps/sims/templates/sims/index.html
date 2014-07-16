@@ -1,0 +1,277 @@
+{% extends 'sims/base.html' %}
+
+{% block title %}
+学生信息管理
+{% endblock %}
+
+{% block js_import %}
+{% endblock %}
+
+{% block js %}
+{% endblock %}
+
+{% block content %}
+    <div id="head" style="font-weight: bold;font-size: 200%;">
+        学生信息管理
+        <a href="{% url 'django.contrib.auth.views.logout_then_login' %}">注销</a>
+    </div>
+    <div id="foot" style="text-align: right;">
+        - &copy; 2014 <a href="#">localhost</a>
+    </div>
+{% endblock %}
+
+{% block extjs %}
+<script type="text/javascript">
+//crsf验证
+Ext.Ajax.on('beforerequest', function (conn, options) {
+    if (!(/^http:.*/.test(options.url) || /^https:.*/.test(options.url))) {
+
+        if(Ext.util.Cookies.get('csrftoken')==null){
+            Ext.util.Cookies.set('csrftoken','csrftoken')
+        }
+        if (typeof(options.headers) == "undefined") {
+            options.headers = {'X-CSRFToken': Ext.util.Cookies.get('csrftoken')};
+        } else {
+            options.headers['X-CSRFToken']=Ext.util.Cookies.get('csrftoken');
+        }
+    }
+}, this);
+
+Ext.onReady(function(){
+    var sexRender = function(value){
+        if (value == 'M')
+            return '<span style="color:red;font-weight:bold;">男</span>';
+        else if (value == 'F')
+            return '<span style="color:green;font-weight:bold;">女</span>';
+        return value;
+    };
+    var local_data = [
+        ['1', '2002001', '孙谷宇', 'M', '24', '团员', '宁波', '计算机'],
+        ['2', '2002014', '徐婷婷', 'F', '23', '党员', '上虞', '电子信息'],
+        ['3', '2002016', '黄孝龙', 'M', '23', '团员', '温州', '电子信息'],
+        ['4', '2002012', '马世恒', 'M', '24', '团员', '唐山', '通信工程'],
+        ['5', '2002011', '王传申', 'M', '24', '党员', '临汾', '电子信息'],
+        ['6', '2002015', '冯学蕊', 'F', '23', '党员', '六安', '电子信息'],
+        ['7', '2002002', '黎红霞', 'F', '23', '团员', '建德', '会计'],
+        ['8', '2002003', '毛迪哲', 'M', '23', '团员', '黑龙江', '电子信息'],
+        ['9', '2002006', '张永德', 'M', '24', '党员', '龙岩', '电子信息'],
+        ['10', '2002009', '刘鹏', 'M', '25', '党员', '大同', '电子信息'],
+        ['11', '2002007', '吴琼', 'M', '24', '党员', '辽阳', '电子信息'],
+        ['12', '2002019', '王超超', 'M', '24', '党员', '温州', '电子信息']
+    ];
+
+    // Extjs 3.X
+    var StudentRecord = Ext.data.Record.create([
+        {name: 'id', type: 'int'},
+        {name: 'code', type: 'string'},
+        {name: 'name', type: 'string'},
+        {name: 'sex', type: 'string'},
+        {name: 'age', type: 'int'},
+        {name: 'political', type: 'string'},
+        {name: 'origin', type: 'string'},
+        {name: 'professional', type: 'string'}
+    ]);
+    // Extjs 3.X
+    //var memproxy = new Ext.data.MemoryProxy(local_data);
+
+    var store = new Ext.data.Store({
+        proxy: new Ext.data.HttpProxy({
+            url: '{% url "apps.sims.views.student_info_list" %}'
+        }),
+        reader: new Ext.data.JsonReader({
+            totalProperty: 'total',
+            root: 'items'
+        }, StudentRecord),
+        remoteSort: true,
+        sortInfo:{
+            field: 'code',
+            direction: 'ASC'
+        }
+    });
+    /*
+    var memStore = new Ext.data.Store({
+        proxy: memproxy,
+        reader: new Ext.data.ArrayReader({
+            idIndex: 0
+        }, StudentRecord)
+    });
+    memStore.load();
+    */
+    store.load({params:{start:0, limit:10}});
+
+    var columns = new Ext.grid.ColumnModel([
+        {header: '学号', dataIndex: 'code'},
+        {header: '姓名', dataIndex: 'name'},
+        {header: '性别', dataIndex: 'sex', renderer: sexRender},
+        {header: '年龄', dataIndex: 'age'},
+        {header: '政治面貌', dataIndex: 'political'},
+        {header: '籍贯', dataIndex: 'origin'},
+        {header: '院系', dataIndex: 'professional'}
+    ]);
+    columns.defaultSortable = true;
+    var grid = new Ext.grid.GridPanel({
+        title: '学生信息表',
+        region: 'center',
+        loadMask: true,
+        store: store,
+        cm: columns,
+        sm: new Ext.grid.RowSelectionModel({ singleSelect: true}),
+        viewConfig: {
+            forceFit: true
+        } ,
+        bbar: new Ext.PagingToolbar({
+            pageSize: 10,
+            store: store,
+            displayInfo: true
+        })
+    });
+
+    // 编辑学生信息的表单
+    var form = new Ext.form.FormPanel({
+        title: '编辑学生信息',
+        region: 'east',
+        frame: true,
+        width: 300,
+        autoHeight: true,
+        labelAlign: 'right',
+        labelWidth: 60,
+        defaultType: 'textfield',
+        defaults: {
+            width: 200,
+            allowBlank: false
+        },
+        items: [{
+            xtype: 'hidden',
+            name: 'id'
+        },{
+            fieldLabel: '学号',
+            name: 'code'
+        },{
+            fieldLabel: '姓名',
+            name: 'name'
+        },{
+            fieldLabel: '年龄',
+            name: 'age',
+            xtype: 'numberfield',
+            allowNegative: false
+        },{
+            fieldLabel: '性别',
+            name: 'sexText',
+            hiddenName: 'sex',
+            xtype: 'combo',
+            store: new Ext.data.ArrayStore({
+                fields: ['value', 'text'],
+                data: [['M', '男'],['F', '女']]
+            }),
+            emptyText: '请选择',
+            mode: 'local',
+            triggerAction: 'all',
+            valueField: 'value',
+            displayField: 'text',
+            editable: false
+        },{
+            fieldLabel: '政治面貌',
+            name: 'political',
+            xtype: 'combo',
+            store: new Ext.data.ArrayStore({
+                fields: ['text'],
+                data: [['群众'],['党员'],['团员']]
+            }),
+            emptyText: '请选择',
+            mode: 'local',
+            triggerAction: 'all',
+            valueField: 'text',
+            displayField: 'text',
+            editable: false
+{#            readOnly: true  // 不要使用readOnly参数了#}
+        },{
+            fieldLabel: '籍贯',
+            name: 'origin'
+        },{
+            fieldLabel: '院系',
+            name: 'professional'
+        }],
+        buttons:[{
+            id: 'firstbtn',
+            text: '添加',
+            handler: function(){
+                if (!form.getForm().isValid()){
+                    console.info('存在不合法表单值');
+                    return;
+                }
+                form.getForm().submit({
+                    url: '{% url "apps.sims.views.save_student" %}',
+                    success: function(form, action){
+                        if (action.result.success){
+                            Ext.Msg.alert('消息', action.result.msg, function(){
+                                grid.getStore().reload();
+                                Ext.getCmp('firstbtn').setText('添加');
+                                form.reset();
+                            })
+                        }
+                    },
+                    failure: function(){
+                        if (form.getForm().findField('id').getValue() == '') {
+                            Ext.Msg.alert('错误', '添加失败');
+                        } else {
+                            Ext.Msg.alert('错误', '修改失败');
+                        }
+                    }
+                });
+            }
+        },{
+            text: '清空',
+            handler: function(){
+                form.getForm().reset();
+                Ext.getCmp('firstbtn').setText('添加');
+            }
+        },{
+            text: '删除',
+            handler: function(){
+                var id = form.getForm().findField('id').getValue();
+                if (id == ''){
+                    Ext.Msg.alert('提示', '请选择要删除的信息。');
+                } else {
+                    Ext.Ajax.request({
+                        url: '{% url "apps.sims.views.delete_student" %}',
+                        params: {
+                            'id': id
+                        },
+                        success: function(response, opts){
+                            var obj = Ext.decode(response.responseText);
+                            if (obj.success){
+                                Ext.Msg.alert('消息', obj.msg, function(){
+                                    grid.getStore().reload();
+                                    Ext.getCmp('firstbtn').setText('添加');
+                                    form.getForm().reset();
+                                })
+                            }
+                        },
+                        failure: function(){
+                            Ext.Msg.alert('错误', '删除失败');
+                        }
+                    });
+                }
+            }
+        }]
+    });
+
+    grid.on('rowclick', function(grid, rowIndex, e){
+        var record = this.getStore().getAt(rowIndex);
+        form.getForm().loadRecord(record);
+        form.buttons[0].setText('修改');
+    });
+
+    var viewport = new Ext.Viewport({
+        layout: 'border',
+        items: [{
+            region: 'north',
+            contentEl: 'head'
+        }, grid, form,{
+            region: 'south',
+            contentEl: 'foot'
+        }]
+    });
+});
+</script>
+{% endblock %}

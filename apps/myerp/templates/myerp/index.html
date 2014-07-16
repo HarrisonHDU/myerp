@@ -1,0 +1,192 @@
+{% extends 'myerp/base.html' %}
+{% load static from staticfiles %}
+
+{% block title %}
+首页
+{% endblock %}
+
+{% block js_import %}
+   <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/util.js"></script>
+   <script type="text/javascript" src="{{ STATIC_URL }}extjs/ux/TabCloseMenu.js"></script>
+{% endblock %}
+
+{% block css %}
+<style type="text/css">
+    .myerp-div-header {
+        background-color: #DFE8F6;
+        padding: 15px;
+        line-height: 30px;
+        font-weight: bolder;
+        font-size: xx-large;
+    }
+    .myerp-exit {
+        background-image: url("{% static 'myerp/image/exit.png' %}") !important;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+{% include 'myerp/util.html' %}
+<script type="text/javascript">
+var sysmenu_array = ['订单管理','仓库管理','销售管理','财务管理','渠道管理','系统管理'];
+
+/* 从后台获取系统菜单数据后，根据sysmenu_array依次生成菜单树 */
+function after_load_sysmenu_data(menu_data, sysmenu){
+    Ext.each(sysmenu_array, function(item, index, allItems){
+        var menu_tree = new Ext.tree.TreePanel({
+            title: item,
+            loader: new Ext.tree.TreeLoader(),
+            root: new Ext.tree.AsyncTreeNode({
+                expand: true,
+                children: menu_data.search(function(el){
+                    return el.text == item ? 0 : -1;
+                }).children
+            }),
+            rootVisible:false,
+            listeners:{
+                click: function(node, e){
+                    if (!node.isLeaf())
+                        node.toggle();
+                    else {
+                        // 阻止默认事件发生
+                        e.stopEvent();
+                        // 点击叶子节点，激活相应的页面(若不存在则新建页签并激活)
+                        var node_attr = node.attributes;
+                        // 如果节点的href属性为空，什么也不做
+                        if (node_attr.href == '') return;
+                        var tabpanel = Ext.getCmp('tabpanel');
+                        var tab_id = 'tab-' + node_attr.id;
+                        if (tabpanel.getItem(tab_id) == undefined){
+                            // 页签不存在，创建
+                            tabpanel.add({
+                                id: tab_id,
+                                title: node_attr.text,
+                                border: false,
+                                closable: true,
+                                html: Ext.DomHelper.createHtml({
+                                    tag: 'iframe',
+                                    width: '100%',
+                                    height: '100%',
+                                    frameborder: '0',
+                                    src: node_attr.href
+                                })
+                            });
+                        } else {
+                            // 页签已存在
+                        }
+                        // 激活页签
+                        tabpanel.setActiveTab(tab_id);
+                    }
+                }
+            }
+        });
+        sysmenu.add(menu_tree);
+    });
+    // 新增组件到已渲染的容器中，必须调用此方法重新计算布局，不然新增组件无法显示
+    sysmenu.doLayout();
+}
+</script>
+{% endblock %}
+
+{% block body %}
+{% endblock %}
+
+{% block extjs %}
+<script type="text/javascript">
+Ext.onReady(function(){
+    // north区域
+    var northPanel = new Ext.Panel({
+        height: 60,
+        layout: 'column',
+        region: 'north',
+        items:[{
+            columnWidth: 1,
+            html: '通用企业信息管理系统',
+            height:60,
+            frame: false,
+            border:false,
+            bodyBorder: false,
+            bodyCssClass: 'myerp-div-header'
+        },{
+            width: 500,
+            height: 60,
+            frame: false,
+            border:false,
+            bodyBorder: false,
+            bodyStyle: 'background-color:#DFE8F6',
+            layout: 'absolute',
+            items:[{
+                id: 'btn_exit',
+                xtype: 'button',
+                text: '退出系统',
+                x: 410,
+                y: 3,
+                anchor: '-30 80%',
+                iconCls: 'myerp-exit',
+                iconAlign: 'top',
+                scale: 'large'
+            }]
+        }]
+    });
+
+    /* 菜单区域 */
+    var sysmenu = new Ext.Panel({
+        region: 'west',
+        title: "系统菜单",
+        collapsible: true,
+        split: true,
+        layout: 'accordion',
+        width: 200,
+        layoutConfig:{
+            titleCollapse: true,
+            animate: true,
+            activeOnTop:false
+        },
+        headerStyle: 'text-align:center',
+        items:[]
+    });
+    // 加载菜单数据并生成菜单树
+    loadSysMenuData(after_load_sysmenu_data, sysmenu);
+
+    /* 中间主页面 */
+    var content = new Ext.TabPanel({
+        id: 'tabpanel',
+        region: 'center',
+        resizeTabs: true,
+        minTabWidth: 80,
+        activeTab: 0,
+        enableTabScroll: true,
+        headerStyle: 'text-align:center',
+        layoutOnTabChange: true,
+        plugins: new Ext.ux.TabCloseMenu(),
+        items:[{
+            id: 'tab-main',
+            title: '首页',
+            border: false,
+            closable: false,
+            html: Ext.DomHelper.createHtml({
+                tag: 'iframe',
+                width: '100%',
+                height: '100%',
+                frameborder: '0',
+                src: "{% url 'apps.myerp.views.main_view' %}"
+            })
+        }]
+    });
+
+    new Ext.Viewport({
+        layout: 'border',
+        defaults:{
+        },
+        items:[content, northPanel, sysmenu]
+    });
+
+
+    /* 调整按钮样式 */
+    Ext.select('#btn_exit button').first().applyStyles({
+        'padding-left': '3px',
+        'padding-right': '3px'
+    });
+});
+</script>
+{% endblock %}

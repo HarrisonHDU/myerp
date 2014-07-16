@@ -1,0 +1,25 @@
+{% extends "myerp/base.html" %}
+
+{% block extjs %}
+<script type="text/javascript">
+Ext.onReady(function(){
+    new Ext.Viewport({
+        layout: 'border',
+        border: false,
+        defaults:{
+            border: true
+        },
+        items:[{
+            title: '菜单树',
+            html: '这里放一棵菜单树',
+            region: 'center'
+        },{
+            title: '表单',
+            width: 350,
+            html: '这个是一个菜单操作表单',
+            region: 'east'
+        }]
+    });
+});
+</script>
+{% endblock %}

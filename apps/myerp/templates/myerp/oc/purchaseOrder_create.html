@@ -1,0 +1,225 @@
+{% extends "myerp/base.html" %}
+
+{% block css_import %}
+    <link rel="stylesheet" href="{{ STATIC_URL }}myerp/css/ux-all.css">
+{% endblock %}
+
+{% block js_import %}
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/CenterLayout.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/util.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/productSearchGrid.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/product_searchWindow.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}myerp/script/product_searchField.js"></script>
+{% endblock %}
+
+{% block css %}
+<style type="text/css">
+.ux-layout-center .x-panel-body,
+body.ux-layout-center {
+    text-align: left;
+}
+</style>
+{% endblock %}
+
+{% block extjs %}
+<script type="text/javascript">
+Ext.ns('oc.purchaseOrder_create');
+var poc = oc.purchaseOrder_create;
+
+poc.form_set = new Ext.form.FieldSet({
+    title: '基本信息',
+    height: 80,
+    layout: 'column',
+    border: true,
+    anchor: '100%',
+    labelWidth: 80,
+    defaults:{
+        layout: 'form',
+        border: false
+    },
+    items:[{
+        columnWidth:.33,
+        items:[{
+            ref: '../order_id',
+            xtype: 'textfield',
+            fieldLabel: '订单编号',
+            disabled: true,
+            name: 'pid',
+            anchor: '80%'
+        }]
+    },{
+        columnWidth:.33,
+        items:[{
+            ref: '../creater',
+            xtype: 'textfield',
+            fieldLabel: '创建人',
+            disabled: true,
+            name: 'creater',
+            anchor: '80%'
+        }]
+    },{
+        columnWidth:.34,
+        items:[{
+            ref: '../create_datetime',
+            xtype: 'datefield',
+            fieldLabel: '创建时间',
+            disabled: true,
+            name: 'create_datetime',
+            format: 'Y-m-d H:i:s',
+            anchor: '80%'
+        }]
+    }]
+});
+
+
+poc.productSearchWindow = new Ext.ux.window.ProductSearchWindow({
+    url: '{% url "sys_product_query" %}'
+});
+
+
+poc.grid = new Ext.grid.EditorGridPanel({
+    title: '订单明细',
+    anchor: '100%',
+    height: 450,
+    clicksToEdit: 1,
+    sm: new Ext.grid.RowSelectionModel({
+        singleSelect: false,
+        listeners:{
+            selectionchange: function(sm){
+                poc.grid.deleteBtn.setDisabled(sm.getCount() < 1);
+            }
+        }
+    }),
+    cm: new Ext.grid.ColumnModel([
+        new Ext.grid.RowNumberer(),
+        {header: '产品编码', dataIndex:'product_id', width: 100,
+            editor: new Ext.form.TextField()},
+        {header: '产品名称', dataIndex:'product_name', width: 120,
+            editor: new Ext.ux.form.ProductSearchField({
+                searchWindow: poc.productSearchWindow
+            })},
+        {header: '单价', dataIndex:'unit_price', width: 50, renderer: Ext.util.Format.chnMoney,
+            editor: new Ext.form.NumberField({
+                allowNegative: false,
+                allowBlank: false
+            })},
+        {header: '数量', dataIndex:'amount', width: 50, xtype:'numbercolumn',
+            editor: new Ext.form.NumberField({
+                allowNegative: false,
+                allowDecimals: false,
+                allowBlank: false
+            })},
+        {header: '合计', dataIndex:'sum', width: 70, renderer: function(v, meta, r){
+            return Ext.util.Format.chnMoney(r.get('unit_price')* r.get('amount'));
+        }}
+    ]),
+    viewConfig:{
+        forceFit: true
+    },
+    bbar: [{
+        text:'添加',
+        iconCls: 'Add',
+        handler: function(btn, e){
+            var store = poc.grid.getStore();
+            var order_detail = store.recordType;
+            var r = new order_detail({
+                id: '',
+                product_id: '',
+                product_name: '',
+                unit_price: 0,
+                amount: 0,
+                sum: ''
+            });
+            poc.grid.stopEditing();
+            store.add(r);
+        }},'-',{
+        ref: '../deleteBtn',
+        text: '删除',
+        disabled: true,
+        iconCls: 'Delete',
+        handler: function(btn, e){
+            poc.grid.stopEditing();
+            var s = poc.grid.getSelectionModel().getSelections();
+            Ext.each(s, function(item, idx){
+                poc.grid.getStore().remove(item);
+            });
+        }
+    }],
+    store: new Ext.data.ArrayStore({
+        url: "{% url 'oc_podd' %}",
+        idProperty: 'id',
+        fields:[
+            {name: 'id', type:'int'},
+            {name: 'product_id', type: 'int'},
+            {name: 'product_name', type: 'string'},
+            {name: 'unit_price', type: 'float'},
+            {name: 'amount', type: 'int'},
+            {name: 'sum', defaultValue: 0, type: 'float'}
+        ],
+        autoLoad: false,
+        remoteSort: true,
+        sortInfo:{
+            field: 'product_id',
+            direction: 'ASC'
+        }
+    }),
+    listeners:{
+        beforeedit: function(e){
+            console.info(e);
+        }
+    }
+});
+
+poc.form = new Ext.form.FormPanel({
+    width: '1000',
+    autoScroll: true,
+    labelAlign: 'right',
+    labelWidth: 80,
+    border:false,
+    items:[
+        poc.form_set,
+        {
+            xtype: 'fieldset',
+            title: '备注',
+            autoHeight: true,
+            items:[{
+                hideLabel: true,
+                xtype: 'textarea',
+                height: 50,
+                anchor: '100%'
+            }]
+        },
+        poc.grid
+    ]
+});
+
+Ext.onReady(function(){
+    new Ext.Viewport({
+        layout: 'fit',
+        items:{
+            layout: 'ux.center',
+            tbar: new Ext.Toolbar({
+                items:[{
+                    text: '保存',
+                    iconCls: 'Pagesave'
+                },'-',{
+                    text: '返回',
+                    iconCls: 'Arrowredo',
+                    handler: function(btn, e){ window.location.href = '{{ back }}'; }
+                }]
+            }),
+            items: poc.form
+        }
+    });
+
+    {% if order_id %}
+        /* 在编辑页面, 需要加载数据 */
+    {% else %}
+        /* 在新建页面, 添加一些默认值 */
+        poc.form_set.order_id.setValue('自动生成');
+        poc.form_set.creater.setValue('当前用户');
+        poc.form_set.create_datetime.setValue(new Date());
+    {% endif %}
+});
+</script>
+{% endblock %}
