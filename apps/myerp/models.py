@@ -134,5 +134,5 @@ def after_model_save_callback_data_doc(sender, **kwargs):
         DOC_Handler['product_catagory_primary']()
         DOC_Handler['product_catagory']()
     if isinstance(kwargs['instance'], ProductCategorySecondary):
-        # 更新耳机产品种类数据
+        # 更新二级产品种类数据
         DOC_Handler['product_catagory']()
